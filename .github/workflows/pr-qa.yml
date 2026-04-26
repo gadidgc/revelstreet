@@ -1,0 +1,108 @@
+name: PR QA (agent)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node (for Playwright MCP via npx)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Start dev server
+        run: |
+          bun run dev > dev-server.log 2>&1 &
+          echo "DEV_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for dev server
+        run: bunx wait-on http://127.0.0.1:5173 --timeout 60000
+
+      - name: Build prompt context
+        id: ctx
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p .qa-run
+          # Diff capped at 8k lines to keep the prompt bounded
+          git diff "$BASE_SHA"..."$HEAD_SHA" | head -n 8000 > .qa-run/pr.diff
+          # Render the prompt with envsubst-style replacement
+          {
+            echo "PR title: $PR_TITLE"
+            echo
+            echo "PR body:"
+            echo "$PR_BODY"
+            echo
+            echo "Diff vs base (truncated to 8k lines):"
+            echo '```diff'
+            cat .qa-run/pr.diff
+            echo '```'
+            echo
+            cat .github/qa-prompt.md
+          } > .qa-run/prompt.md
+          echo "prompt_path=.qa-run/prompt.md" >> $GITHUB_OUTPUT
+
+      - name: Run Claude QA agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt_file: ${{ steps.ctx.outputs.prompt_path }}
+          max_turns: 25
+          allowed_tools: "Bash,Read,Write,mcp__playwright__*"
+          mcp_config: |
+            {
+              "mcpServers": {
+                "playwright": {
+                  "command": "npx",
+                  "args": ["-y", "@playwright/mcp@latest", "--headless"]
+                }
+              }
+            }
+
+      - name: Upload QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report-pr-${{ github.event.pull_request.number }}
+          path: |
+            qa-report.md
+            .qa-run/**
+            screenshots/**
+          if-no-files-found: ignore
+
+      - name: Tear down dev server
+        if: always()
+        run: kill "${DEV_PID:-0}" 2>/dev/null || true
