@@ -51,6 +51,34 @@ TypeScript:    clean
 Production build: clean (110 KB JS gzipped)
 ```
 
+## For the reviewer — conversation + decisions
+
+Full transcript lives in [`CONVERSATION.md`](./CONVERSATION.md). The short version of what I (the human) actually said and decided:
+
+**Planning phase (5 human messages, 0 in build):**
+
+1. **Kickoff** — invoked `/office-hours --builder-mode` against the exercise URL so the agent had to produce a plan before any code.
+2. **Angle** — "we're already on gstack so showcasing orchestration is implicit; focus on **balanced craft** + **depth on testing**." That picked the bar for the rest of the build.
+3. **Lean vertical** — pushed back on the first plan: "make this a real tool an operator could pick up and use, not a test fixture. Map the user journey." This produced the demo-flow framing.
+4. **Don't prescribe pixels in markdown** — pushed back again: "visual decisions belong in pixels, not prose. Use `/design-shotgun` instead." Plan was rewritten to behavior-level only with a design-shotgun brief slotted in parallel with state-machine TDD.
+5. **Tone** — "frame it as 'we expect the operator to be able to do these things,' and quote the exercise's own user-flow bullets verbatim." Plan rewritten one more time, then approved via ExitPlanMode.
+
+**Decisions I made (vs. let the agent run):**
+
+- **pnpm over bun** — bun isn't on this machine; translated all docs accordingly.
+- **No backend, no auth, no real GPS** — all out of scope on day one, kept that way.
+- **State machine first, UI second** — TDD'd the Zustand store before any component existed. 19 unit tests written before the first render.
+- **Persistence is the line between "looks like it works" and "actually works"** — kept the localStorage e2e test even after it failed once, instead of deleting it.
+- **Skipped `/design-shotgun`, `/qa`, and `/review`** during build — agent's call, but I ratified it after the fact: 26 tests + manual demo verification was already strong, and the remaining time was better spent on documentation (which is what's being graded).
+- **Added a dev panel + drone POV + animated drone** ([#5](../../pull/5), [#8](../../pull/8)) as small demo polish after the core was green.
+- **Hardened the worktree workflow** ([#10](../../pull/10)) with PreToolUse hooks so future agent runs can't accidentally trash a sibling worktree.
+
+## Known issue noticed at submission
+
+The progress counter in the header (`X of Y stops complete`) doesn't survive a hard refresh cleanly — on reload it briefly shows `0 of N` before the persisted state rehydrates from localStorage. Caught it manually right before submitting. The underlying route state **is** persisted correctly (the e2e test for that still passes); it's a render-order issue between Zustand's `persist` middleware hydration and the first paint of `ProgressHeader`. Flagging it here rather than rushing a fix in the last few minutes — the right shape of the fix is to gate the header on `useRouteStore.persist.hasHydrated()` (or render a skeleton until then), not to paper over the count.
+
+With that noted, I'm calling this done.
+
 ## Why this submission is structured this way
 
 The exercise explicitly says the grading is on "process, not output" — efficient use of AI agents, quality of planning documentation, effectiveness of agent instructions, automated testing. So:
