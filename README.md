@@ -36,6 +36,12 @@ The exercise prompt defines the typical user flow as:
 
 We mapped each of those bullets to a concrete expectation in the app, demoable end-to-end without any narration. See `app/README.md` for the full walkthrough or just open the app and click — it walks itself.
 
+## CI
+
+Every PR triggers [`.github/workflows/pr-qa.yml`](./.github/workflows/pr-qa.yml): the runner boots `pnpm dev`, then [`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) reads the PR body + diff, drives the app via Playwright MCP, walks the operator demo flow, and posts a PASS / NEEDS WORK / BLOCKED summary to the PR. Full design notes in [`AGENTS.md`](./AGENTS.md).
+
+**Required repo secret:** `ANTHROPIC_API_KEY` (Settings → Secrets and variables → Actions). Without it, the agent step fails. No other secrets are needed — the dev server runs locally inside the runner.
+
 ## Test results at submission
 
 ```

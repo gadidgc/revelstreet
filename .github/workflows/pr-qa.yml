@@ -27,46 +27,50 @@ jobs:
       - name: Detect app
         id: detect
         run: |
-          if [ -f package.json ]; then
+          if [ -f app/package.json ]; then
             echo "has_app=true" >> $GITHUB_OUTPUT
           else
             echo "has_app=false" >> $GITHUB_OUTPUT
-            echo "::notice::No package.json found — skipping QA agent run."
+            echo "::notice::No app/package.json found — skipping QA agent run."
           fi
 
-      - name: Setup Bun
+      - name: Setup pnpm
         if: steps.detect.outputs.has_app == 'true'
-        uses: oven-sh/setup-bun@v2
+        uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
+          package_json_file: app/package.json
 
-      - name: Setup Node (for Playwright MCP via npx)
+      - name: Setup Node
         if: steps.detect.outputs.has_app == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.detect.outputs.has_app == 'true'
-        run: bun install --frozen-lockfile
+        working-directory: app
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         if: steps.detect.outputs.has_app == 'true'
-        run: bunx playwright install --with-deps chromium
+        working-directory: app
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Start dev server
         if: steps.detect.outputs.has_app == 'true'
+        working-directory: app
         run: |
-          bun run dev > dev-server.log 2>&1 &
+          pnpm dev > ../dev-server.log 2>&1 &
           echo "DEV_PID=$!" >> $GITHUB_ENV
 
       - name: Wait for dev server
         if: steps.detect.outputs.has_app == 'true'
-        run: bunx wait-on http://127.0.0.1:5173 --timeout 60000
+        run: npx -y wait-on http://127.0.0.1:5173 --timeout 60000
 
-      - name: Build prompt context
+      - name: Build prompt + MCP config
         if: steps.detect.outputs.has_app == 'true'
-        id: ctx
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -76,7 +80,7 @@ jobs:
           mkdir -p .qa-run
           # Diff capped at 8k lines to keep the prompt bounded
           git diff "$BASE_SHA"..."$HEAD_SHA" | head -n 8000 > .qa-run/pr.diff
-          # Render the prompt with envsubst-style replacement
+          # Render the full prompt
           {
             echo "PR title: $PR_TITLE"
             echo
@@ -90,25 +94,34 @@ jobs:
             echo
             cat .github/qa-prompt.md
           } > .qa-run/prompt.md
-          echo "prompt_path=.qa-run/prompt.md" >> $GITHUB_OUTPUT
+          # MCP config — written to a file because the v1 action does not accept inline mcp_config
+          cat > .qa-run/mcp.json <<'JSON'
+          {
+            "mcpServers": {
+              "playwright": {
+                "command": "npx",
+                "args": ["-y", "@playwright/mcp@latest", "--headless"]
+              }
+            }
+          }
+          JSON
+          # Stash the rendered prompt in $GITHUB_ENV (multi-line) for the action input
+          {
+            echo "QA_PROMPT<<QA_EOF"
+            cat .qa-run/prompt.md
+            echo "QA_EOF"
+          } >> $GITHUB_ENV
 
       - name: Run Claude QA agent
         if: steps.detect.outputs.has_app == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt_file: ${{ steps.ctx.outputs.prompt_path }}
-          max_turns: 25
-          allowed_tools: "Bash,Read,Write,mcp__playwright__*"
-          mcp_config: |
-            {
-              "mcpServers": {
-                "playwright": {
-                  "command": "npx",
-                  "args": ["-y", "@playwright/mcp@latest", "--headless"]
-                }
-              }
-            }
+          prompt: ${{ env.QA_PROMPT }}
+          claude_args: |
+            --max-turns 25
+            --allowedTools "Bash,Read,Write,mcp__playwright__*"
+            --mcp-config .qa-run/mcp.json
 
       - name: Upload QA artifact
         if: always()
@@ -119,6 +132,7 @@ jobs:
             qa-report.md
             .qa-run/**
             screenshots/**
+            dev-server.log
           if-no-files-found: ignore
 
       - name: Tear down dev server

@@ -28,7 +28,10 @@ under the `mcp__playwright__*` tool namespace.
 4. **For every bug you find**, capture a screenshot via Playwright MCP and
    write a one-line repro (selector + action + observed vs expected).
 
-5. **Write `qa-report.md`** at the repo root with:
+5. **Write `qa-report.md` at the repo root** (path: `./qa-report.md`, relative
+   to the repo checkout, NOT inside `app/`). Save screenshots under
+   `./screenshots/` at the repo root. Both paths are picked up by the artifact
+   uploader. The report should contain:
    - Health score (0–10).
    - One-line summary of what the PR claims to do.
    - What you actually observed walking the flow.
@@ -50,6 +53,15 @@ under the `mcp__playwright__*` tool namespace.
    2. ...
    3. ...
    ```
+
+## CI environment quirks
+
+- **Map tiles may fail to load (HTTP 429) in CI.** The OpenStreetMap tile CDN
+  rate-limits GitHub Actions IP ranges. If the map container renders but tiles
+  are blank or you see 429s in the browser network log, that is a CI quirk —
+  note it under "environment notes" in the report but do NOT count it as a
+  product bug. Markers, polylines, and active-stop highlighting still need to
+  work; only the tile imagery is excused.
 
 ## Hard rules
 
