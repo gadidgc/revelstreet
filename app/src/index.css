@@ -1,18 +1,37 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@theme inline {
+  --color-canvas: #faf6ef;
+  --color-card: #fffcf6;
+  --color-card-active: #fbf2e3;
+  --color-ink: #0f1729;
+  --color-ink-soft: #5a6478;
+  --color-ink-muted: #8b94a3;
+  --color-accent: #c8553d;
+  --color-accent-soft: #e8a695;
+  --color-success: #7a8c6f;
+  --color-danger: #a63a2c;
+  --color-hairline: #e7dfd0;
+  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  background: #0b0d10;
-  color: #e6e8eb;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Leaflet pin overrides for our numbered markers */
 .stop-pin,
 .drone-marker {
   background: transparent;
@@ -22,4 +41,20 @@ body {
 @keyframes drone-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
+}
+
+.leaflet-container {
+  background: #f0ebe0;
+  font-family: var(--font-sans);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 41, 0.04), 0 8px 24px rgba(15, 23, 41, 0.08);
+}
+
+.leaflet-popup-tip {
+  background: var(--color-card);
 }

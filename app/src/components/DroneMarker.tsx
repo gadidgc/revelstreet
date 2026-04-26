@@ -6,9 +6,13 @@ import { useRouteStore } from '../store/routeStore';
 import { useDroneStore } from '../store/droneStore';
 
 function droneIcon(arrived: boolean): L.DivIcon {
+  // Editorial palette: terracotta when arrived, deep navy in transit
   const ring = arrived
-    ? 'box-shadow: 0 0 0 4px rgba(245,158,11,0.85), 0 0 0 10px rgba(245,158,11,0.35), 0 0 16px rgba(245,158,11,0.6); animation: drone-pulse 1.4s ease-in-out infinite;'
-    : 'box-shadow: 0 0 0 2px rgba(56,189,248,0.7), 0 2px 8px rgba(0,0,0,0.6);';
+    ? 'box-shadow: 0 0 0 4px rgba(200,85,61,0.85), 0 0 0 10px rgba(200,85,61,0.28), 0 0 16px rgba(200,85,61,0.5); animation: drone-pulse 1.4s ease-in-out infinite;'
+    : 'box-shadow: 0 0 0 2px rgba(15,23,41,0.55), 0 2px 8px rgba(15,23,41,0.25);';
+
+  const fill = arrived ? '#c8553d' : '#0f1729';
+  const ink = '#faf6ef';
 
   const html = `
     <div
@@ -16,10 +20,10 @@ function droneIcon(arrived: boolean): L.DivIcon {
       data-arrived="${arrived}"
       style="
         width: 28px; height: 28px; border-radius: 50%;
-        background: #0b0d10; color: #38bdf8;
+        background: ${fill}; color: ${ink};
         display: flex; align-items: center; justify-content: center;
-        font-size: 16px; font-family: system-ui;
-        border: 2px solid #38bdf8; ${ring}
+        font-size: 15px; font-family: system-ui;
+        border: 2px solid ${ink}; ${ring}
         cursor: pointer;
       "
       title="Click to open drone camera"
