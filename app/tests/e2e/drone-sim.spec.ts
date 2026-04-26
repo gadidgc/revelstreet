@@ -43,7 +43,7 @@ test('drone simulation: play, arrive, signal banner, release on confirm', async 
   );
 });
 
-test('camera button opens a modal with a video and ESC closes it', async ({
+test('camera modal: opens live, rewinds 10 min, returns to live, ESC closes', async ({
   page,
 }) => {
   await expect(page.getByTestId('camera-modal')).toBeHidden();
@@ -51,10 +51,24 @@ test('camera button opens a modal with a video and ESC closes it', async ({
   await page.getByTestId('camera-button').click();
   await expect(page.getByTestId('camera-modal')).toBeVisible();
   await expect(page.getByTestId('camera-video')).toBeVisible();
-  // The src should be set (we don't fetch the video itself in the test).
   const src = await page.getByTestId('camera-video').getAttribute('src');
   expect(src).toMatch(/\.mp4/);
 
+  // Defaults to Live; rewind button visible, go-live not yet.
+  await expect(page.getByTestId('camera-status')).toContainText(/live/i);
+  await expect(page.getByTestId('camera-rewind')).toBeVisible();
+
+  // Rewind -> status flips to past, go-live button appears.
+  await page.getByTestId('camera-rewind').click();
+  await expect(page.getByTestId('camera-status')).toContainText(/playback|−10|-10/i);
+  await expect(page.getByTestId('camera-go-live')).toBeVisible();
+
+  // Back to live -> status flips back, rewind reappears.
+  await page.getByTestId('camera-go-live').click();
+  await expect(page.getByTestId('camera-status')).toContainText(/live/i);
+  await expect(page.getByTestId('camera-rewind')).toBeVisible();
+
+  // ESC closes.
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('camera-modal')).toBeHidden();
 });
