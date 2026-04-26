@@ -1,0 +1,7 @@
+{
+  "name": "calculator",
+  "version": "0.2.0.0",
+  "description": "A simple two-number calculator with beautiful animations",
+  "main": "calculator.html",
+  "author": "gadidgc"
+}
