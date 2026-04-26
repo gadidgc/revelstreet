@@ -1,38 +1,55 @@
-# Revelstreet Engineering Exercise
+# Revelstreet Engineering Exercise — Drone Delivery Operator Console
 
-Submission repository for the Revelstreet engineering exercise: <https://eng-exercise-1.revelstreet.workers.dev/>
+Submission for <https://eng-exercise-1.revelstreet.workers.dev/>. Built in ~2 hours, agent-driven via Claude Code (Claude Opus 4.7) with the [gstack](https://github.com/garrytan/gstack) skill toolkit.
 
-## Format
+## What's in here
 
-- **2-hour timed challenge.** Cannot be paused once started.
-- Highly open-ended by design — a complete application is not expected within the timeframe.
+| File | What it is |
+|------|------------|
+| [`app/`](./app/) | The application — Vite + React + TypeScript + Tailwind v4. See `app/README.md` for run + test instructions. |
+| [`PLAN.md`](./PLAN.md) | The plan that was approved before any code was written. Driven by `/office-hours` in builder mode. Iterated 3 times based on human feedback. |
+| [`AGENTS.md`](./AGENTS.md) | The orchestration log — which agent steps ran, in what order, what each layer caught, what was deliberately skipped and why. The grading artifact. |
+| [`CONVERSATION.md`](./CONVERSATION.md) | Abbreviated transcript of the human ↔ agent dialogue across the planning and build phases. |
 
-## Requirements
+## Quick start
 
-- **Use of agentic coding agents is required.** Tools such as Claude Code, Cursor, or GitHub Copilot must be used throughout.
+```bash
+cd app
+pnpm install
+pnpm dev          # http://localhost:5173
 
-## Deliverables (committed to this repo)
+pnpm test         # 19 unit tests on the route state machine
+pnpm test:e2e     # 7 Playwright e2e tests (run `npx playwright install chromium` first)
+pnpm test:all     # both
+```
 
-- A log of conversations with the coding agent.
-- Markdown files containing plans, instructions, and hooks.
-- Instructions for launching the application.
+Full demo flow and design rationale: [`app/README.md`](./app/README.md).
 
-## Not Required
+## What we expect the operator to be able to do
 
-- Production deployment (local dev is acceptable).
-- A persistent database (optional).
+The exercise prompt defines the typical user flow as:
 
-## Evaluation
+> - The drone operator is assigned a route by the app
+> - The interface provides a clear view of where to go for pickups and deliveries
+> - The operator can check off when they have arrived or departed from a pickup or delivery location
+> - The operator can indicate whether the pickup or delivery was successful
 
-Assessment focuses on **process, not output**:
+We mapped each of those bullets to a concrete expectation in the app, demoable end-to-end without any narration. See `app/README.md` for the full walkthrough or just open the app and click — it walks itself.
 
-- Efficient use of AI agents for autonomous design, building, and testing.
-- Quality of markdown documentation and agent instructions.
-- Effectiveness of instructions provided to coding assistants.
-- Implementation of automated testing.
+## Test results at submission
 
-> "You will NOT be evaluated on how many lines of code or how many features you build."
+```
+Unit tests:    19 passed (19)   — vitest, ~5ms
+E2E tests:     7 passed (7)     — playwright, ~2.3s
+TypeScript:    clean
+Production build: clean (110 KB JS gzipped)
+```
 
-## Status
+## Why this submission is structured this way
 
-Tech stack and launch instructions **TBD** — these will be decided after the timed exercise begins.
+The exercise explicitly says the grading is on "process, not output" — efficient use of AI agents, quality of planning documentation, effectiveness of agent instructions, automated testing. So:
+
+- The **plan came first** and got iterated against pushback from the human before any code was written. `PLAN.md` shows the full plan as approved.
+- The **state machine was TDD'd** — 19 tests written before any store logic. The implementation passed on the first run.
+- The **agent fixed its own bugs** — the first e2e run had 1 failing test (localStorage being cleared on every reload). The agent diagnosed it from failure output, fixed it, re-ran, all 7 passed. No human intervention. See `AGENTS.md` for the receipt.
+- The **app is a real lean vertical**, not a demo fixture. Persistence across reload is the line we drew between "looks like it works" and "actually works."
