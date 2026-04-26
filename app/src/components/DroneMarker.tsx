@@ -3,6 +3,7 @@ import { Marker } from 'react-leaflet';
 import L from 'leaflet';
 import { useSimStore } from '../store/simStore';
 import { useRouteStore } from '../store/routeStore';
+import { useDroneStore } from '../store/droneStore';
 
 function droneIcon(arrived: boolean): L.DivIcon {
   const ring = arrived
@@ -39,15 +40,18 @@ export function DroneMarker() {
   const segmentIdx = useSimStore((s) => s.segmentIdx);
   const t = useSimStore((s) => s.t);
   const openCamera = useSimStore((s) => s.openCamera);
+  const manual = useDroneStore((s) => s.manual);
+  const manualPos = useDroneStore((s) => s.position);
 
   const position = useMemo<[number, number]>(() => {
+    if (manual) return [manualPos.lat, manualPos.lng];
     const stops = route.stops;
     const a = stops[Math.min(segmentIdx, stops.length - 1)];
     const b = stops[Math.min(segmentIdx + 1, stops.length - 1)];
     return [a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t];
-  }, [route.stops, segmentIdx, t]);
+  }, [manual, manualPos.lat, manualPos.lng, route.stops, segmentIdx, t]);
 
-  const icon = useMemo(() => droneIcon(arrived), [arrived]);
+  const icon = useMemo(() => droneIcon(arrived && !manual), [arrived, manual]);
 
   return (
     <Marker

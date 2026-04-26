@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { useRouteStore, selectActiveStop } from '../store/routeStore';
+import {
+  useRouteStore,
+  selectActiveStop,
+  selectVisibleStops,
+} from '../store/routeStore';
 import { DroneMarker } from './DroneMarker';
 import type { Stop } from '../types';
 
@@ -41,10 +45,11 @@ function pinIcon(stop: Stop, index: number, isActive: boolean): L.DivIcon {
 export function RouteMap() {
   const route = useRouteStore((s) => s.route);
   const active = selectActiveStop(route);
+  const visibleStops = useMemo(() => selectVisibleStops(route), [route]);
 
   const positions = useMemo<[number, number][]>(
-    () => route.stops.map((s) => [s.lat, s.lng]),
-    [route.stops],
+    () => visibleStops.map((s) => [s.lat, s.lng]),
+    [visibleStops],
   );
 
   // Center on the bounding box of all stops.
@@ -74,7 +79,7 @@ export function RouteMap() {
           positions={positions}
           pathOptions={{ color: '#a3a3a3', weight: 3, dashArray: '6 6', opacity: 0.7 }}
         />
-        {route.stops.map((stop, i) => (
+        {visibleStops.map((stop, i) => (
           <Marker
             key={stop.id}
             position={[stop.lat, stop.lng]}

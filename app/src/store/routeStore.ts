@@ -10,6 +10,7 @@ type RouteState = {
   markCompleted: (stopId: string) => void;
   markFailed: (stopId: string, reason: string) => void;
   resetRoute: () => void;
+  addRandomDelivery: () => void;
 };
 
 const cloneRoute = (r: Route): Route => ({
@@ -125,12 +126,47 @@ export const useRouteStore = create<RouteState>()(
       resetRoute: () => {
         set({ route: cloneRoute(sampleRoute) });
       },
+
+      addRandomDelivery: () => {
+        const route = get().route;
+        const lats = route.stops.map((s) => s.lat);
+        const lngs = route.stops.map((s) => s.lng);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
+        const padLat = (maxLat - minLat) * 0.2 || 0.01;
+        const padLng = (maxLng - minLng) * 0.2 || 0.01;
+        const lat =
+          minLat - padLat + Math.random() * (maxLat - minLat + 2 * padLat);
+        const lng =
+          minLng - padLng + Math.random() * (maxLng - minLng + 2 * padLng);
+        const deliveryCount = route.stops.filter(
+          (s) => s.type === 'delivery',
+        ).length;
+        const newStop: Stop = {
+          id: `stop-${Date.now()}`,
+          type: 'delivery',
+          name: `Random Drop #${deliveryCount + 1}`,
+          address: 'Auto-generated',
+          lat,
+          lng,
+          status: 'pending',
+        };
+        set({ route: { ...route, stops: [...route.stops, newStop] } });
+      },
     }),
     { name: 'revelstreet-route' },
   ),
 );
 
 // Selectors
+
+export const selectVisibleStops = (route: Route): Stop[] =>
+  route.stops.filter((s) => {
+    if (s.type === 'pickup') return s.status !== 'departed';
+    return s.status !== 'completed' && s.status !== 'failed';
+  });
 
 export const selectActiveStop = (route: Route): Stop | undefined => {
   // active = first stop that isn't completed/failed/departed

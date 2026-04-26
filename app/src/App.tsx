@@ -2,6 +2,7 @@ import { ProgressHeader } from './components/ProgressHeader';
 import { StopList } from './components/StopList';
 import { RouteMap } from './components/RouteMap';
 import { CameraModal } from './components/CameraModal';
+import { DevPanel } from './components/DevPanel';
 import { useSimTick } from './sim/useSimTick';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         </section>
       </main>
       <CameraModal />
+      {import.meta.env.DEV && <DevPanel />}
     </div>
   );
 }
