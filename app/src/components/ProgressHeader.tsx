@@ -11,12 +11,12 @@ export function ProgressHeader() {
   const openCamera = useSimStore((s) => s.openCamera);
 
   return (
-    <header className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-6 py-4">
+    <header className="flex items-center justify-between border-b border-hairline bg-canvas px-8 py-5">
       <div>
-        <p className="text-xs uppercase tracking-wider text-neutral-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
           Drone Operator
         </p>
-        <h1 className="text-xl font-semibold text-white">
+        <h1 className="font-serif text-[28px] leading-tight text-ink">
           Hi, {route.operatorName}
         </h1>
       </div>
@@ -27,7 +27,7 @@ export function ProgressHeader() {
           type="button"
           onClick={openCamera}
           title="Open drone POV camera"
-          className="flex items-center gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 hover:border-rose-400 hover:bg-rose-500/20"
+          className="flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-4 py-2 font-serif italic text-[14px] text-accent transition-colors hover:bg-accent/15"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -48,17 +48,21 @@ export function ProgressHeader() {
 
         <div
           data-testid="progress-counter"
-          className={
-            'text-lg font-medium tabular-nums ' +
-            (complete ? 'text-emerald-400' : 'text-neutral-200')
-          }
+          className="flex items-baseline gap-2"
         >
           {complete ? (
-            <span>{done} of {total} — Route Complete</span>
-          ) : (
-            <span>
-              {done} <span className="text-neutral-500">of</span> {total} stops complete
+            <span className="font-serif text-[24px] tabular-nums text-success">
+              {done} of {total} — Route Complete
             </span>
+          ) : (
+            <>
+              <span className="font-serif text-[28px] tabular-nums text-ink">
+                {done}
+              </span>
+              <span className="font-serif italic text-[15px] text-ink-soft">
+                of {total} stops complete
+              </span>
+            </>
           )}
         </div>
 
@@ -75,7 +79,7 @@ export function ProgressHeader() {
               simReset();
             }
           }}
-          className="rounded border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
+          className="rounded-md border border-hairline bg-transparent px-5 py-2.5 font-serif italic text-[14px] text-ink transition-colors hover:bg-card"
         >
           Start New Route
         </button>

@@ -12,12 +12,12 @@ export function ArrivalBanner() {
     <div
       data-testid="arrival-banner"
       role="status"
-      className="rounded-md border border-amber-500/60 bg-amber-500/15 px-4 py-3 text-amber-100 shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
+      className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-ink shadow-[0_0_0_3px_rgba(200,85,61,0.08)]"
     >
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-[14px]">
         <span className="text-base">📡</span>
-        <span className="font-semibold">Drone has arrived at {active.name}.</span>
-        <span className="text-amber-200/80">Confirm arrival to continue.</span>
+        <span className="font-serif italic text-accent">Drone has arrived at {active.name}.</span>
+        <span className="text-ink-soft">Confirm arrival to continue.</span>
       </div>
     </div>
   );

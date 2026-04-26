@@ -9,17 +9,17 @@ type Props = {
   isActive: boolean;
 };
 
-const STATUS_STYLES: Record<Stop['status'], string> = {
-  pending: 'bg-neutral-800 text-neutral-400',
-  arrived: 'bg-amber-900/40 text-amber-300 border border-amber-700/50',
-  departed: 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50',
-  completed: 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50',
-  failed: 'bg-rose-900/40 text-rose-300 border border-rose-700/50',
+const STATUS_TEXT: Record<Stop['status'], string> = {
+  pending: 'text-ink-muted',
+  arrived: 'text-accent',
+  departed: 'text-success',
+  completed: 'text-success',
+  failed: 'text-danger',
 };
 
-const TYPE_BADGE: Record<Stop['type'], { label: string; cls: string }> = {
-  pickup: { label: 'PICKUP', cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
-  delivery: { label: 'DELIVERY', cls: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
+const TYPE_TEXT: Record<Stop['type'], { label: string; cls: string }> = {
+  pickup: { label: 'PICKUP', cls: 'text-accent' },
+  delivery: { label: 'DELIVERY', cls: 'text-ink-soft' },
 };
 
 function formatTime(iso?: string): string {
@@ -40,7 +40,7 @@ export function StopCard({ stop, index, isActive }: Props) {
   const markFailed = useRouteStore((s) => s.markFailed);
 
   const action = nextActionFor(stop);
-  const typeBadge = TYPE_BADGE[stop.type];
+  const typeText = TYPE_TEXT[stop.type];
 
   return (
     <li
@@ -48,60 +48,67 @@ export function StopCard({ stop, index, isActive }: Props) {
       data-active={isActive}
       data-status={stop.status}
       className={
-        'rounded-lg border p-4 transition-all ' +
+        'relative shrink-0 overflow-hidden rounded-md p-5 transition-colors ' +
         (isActive
-          ? 'border-amber-500/60 bg-neutral-900 shadow-[0_0_0_2px_rgba(245,158,11,0.15)]'
-          : 'border-neutral-800 bg-neutral-900/40')
+          ? 'bg-card-active ring-1 ring-accent/20'
+          : 'bg-card')
       }
     >
-      <div className="flex items-start gap-3">
+      {isActive && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 h-full w-[3px] bg-accent"
+        />
+      )}
+
+      <div className="flex items-start gap-4">
         <div
           className={
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-semibold ' +
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-[15px] ' +
             (isActive
-              ? 'bg-amber-500 text-neutral-950'
-              : 'bg-neutral-800 text-neutral-300')
+              ? 'bg-accent text-canvas'
+              : 'bg-ink text-canvas')
           }
         >
           {index + 1}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center gap-3">
             <span
               className={
-                'rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ' +
-                typeBadge.cls
+                'text-[11px] font-semibold uppercase tracking-[0.16em] ' +
+                typeText.cls
               }
             >
-              {typeBadge.label}
+              {typeText.label}
             </span>
             <span
               data-testid={`status-${stop.id}`}
               className={
-                'rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ' +
-                STATUS_STYLES[stop.status]
+                'font-mono text-[11px] uppercase tracking-wider ' +
+                STATUS_TEXT[stop.status]
               }
             >
               {stop.status}
             </span>
           </div>
-          <p className="truncate font-medium text-white">{stop.name}</p>
-          <p className="truncate text-sm text-neutral-400">{stop.address}</p>
+          <p className="truncate font-medium text-[17px] text-ink">{stop.name}</p>
+          <p className="truncate text-[14px] text-ink-soft">{stop.address}</p>
 
           {stop.arrivedAt && (
-            <p className="mt-2 text-xs text-neutral-500">
-              Arrived {formatTime(stop.arrivedAt)}
-              {stop.departedAt && ` · Departed ${formatTime(stop.departedAt)}`}
-              {stop.completedAt && ` · Delivered ${formatTime(stop.completedAt)}`}
-              {stop.failedAt && ` · Failed ${formatTime(stop.failedAt)}`}
+            <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+              ARR {formatTime(stop.arrivedAt)}
+              {stop.departedAt && ` · DEP ${formatTime(stop.departedAt)}`}
+              {stop.completedAt && ` · DELIVERED ${formatTime(stop.completedAt)}`}
+              {stop.failedAt && ` · FAILED ${formatTime(stop.failedAt)}`}
             </p>
           )}
 
           {stop.failureReason && (
             <p
               data-testid={`failure-reason-${stop.id}`}
-              className="mt-2 inline-block rounded border border-rose-700/60 bg-rose-950/50 px-2 py-1 text-xs text-rose-200"
+              className="mt-2 inline-block rounded bg-[#fbe9e3] px-2.5 py-1 text-[12px] text-danger"
             >
               Reason: {stop.failureReason}
             </p>
@@ -109,15 +116,14 @@ export function StopCard({ stop, index, isActive }: Props) {
         </div>
       </div>
 
-      {/* Contextual action button — only the next legal action shows */}
       {action !== 'done' && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex gap-2">
           {action === 'arrived' && (
             <button
               data-testid={`btn-arrived-${stop.id}`}
               type="button"
               onClick={() => markArrived(stop.id)}
-              className="flex-1 rounded bg-amber-500 px-4 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-amber-400"
+              className="flex-1 rounded-md bg-accent px-4 py-3 font-serif italic text-[15px] text-canvas transition-colors hover:bg-[#b04931]"
             >
               Mark Arrived
             </button>
@@ -127,9 +133,9 @@ export function StopCard({ stop, index, isActive }: Props) {
               data-testid={`btn-departed-${stop.id}`}
               type="button"
               onClick={() => markDeparted(stop.id)}
-              className="flex-1 rounded bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+              className="flex-1 rounded-md bg-success px-4 py-3 font-serif italic text-[15px] text-canvas transition-colors hover:bg-[#67795c]"
             >
-              Departed with package
+              Departed with Package
             </button>
           )}
           {action === 'completed-or-failed' && (
@@ -138,7 +144,7 @@ export function StopCard({ stop, index, isActive }: Props) {
                 data-testid={`btn-completed-${stop.id}`}
                 type="button"
                 onClick={() => markCompleted(stop.id)}
-                className="flex-1 rounded bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+                className="flex-1 rounded-md bg-accent px-4 py-3 font-serif italic text-[15px] text-canvas transition-colors hover:bg-[#b04931]"
               >
                 Mark Delivered
               </button>
@@ -146,7 +152,7 @@ export function StopCard({ stop, index, isActive }: Props) {
                 data-testid={`btn-failed-${stop.id}`}
                 type="button"
                 onClick={() => setFailOpen(true)}
-                className="rounded border border-rose-600/60 bg-rose-950/30 px-4 py-2.5 text-sm font-semibold text-rose-200 hover:bg-rose-900/40"
+                className="rounded-md border border-danger/40 bg-transparent px-4 py-3 font-serif italic text-[15px] text-danger transition-colors hover:bg-[#fbe9e3]"
               >
                 Mark Failed
               </button>
@@ -158,15 +164,16 @@ export function StopCard({ stop, index, isActive }: Props) {
       {failOpen && (
         <div
           data-testid={`fail-modal-${stop.id}`}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-ink/40 p-4"
         >
-          <div className="w-full max-w-md rounded-lg border border-neutral-700 bg-neutral-900 p-5">
-            <h2 className="mb-1 text-lg font-semibold text-white">
+          <div className="w-full max-w-md rounded-md border border-hairline bg-card p-6 shadow-[0_8px_32px_rgba(15,23,41,0.16)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
+              Stop {index + 1}
+            </p>
+            <h2 className="mt-1 font-serif text-[22px] text-ink">
               Why did this delivery fail?
             </h2>
-            <p className="mb-4 text-sm text-neutral-400">
-              Stop {index + 1}: {stop.name}
-            </p>
+            <p className="mb-4 mt-1 text-[14px] text-ink-soft">{stop.name}</p>
 
             <div className="mb-3 flex flex-wrap gap-2">
               {FAILURE_REASONS.map((r) => (
@@ -176,10 +183,10 @@ export function StopCard({ stop, index, isActive }: Props) {
                   data-testid={`fail-quick-${r.replaceAll(' ', '-')}`}
                   onClick={() => setFailReason(r)}
                   className={
-                    'rounded border px-3 py-1.5 text-xs font-medium ' +
+                    'rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ' +
                     (failReason === r
-                      ? 'border-rose-500 bg-rose-950/50 text-rose-200'
-                      : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-500')
+                      ? 'border-accent bg-[#fbe9e3] text-danger'
+                      : 'border-hairline bg-canvas text-ink-soft hover:bg-card-active')
                   }
                 >
                   {r}
@@ -193,17 +200,17 @@ export function StopCard({ stop, index, isActive }: Props) {
               onChange={(e) => setFailReason(e.target.value)}
               placeholder="Or type a reason..."
               rows={3}
-              className="w-full rounded border border-neutral-700 bg-neutral-950 p-2 text-sm text-white outline-none focus:border-rose-500"
+              className="w-full rounded-md border border-hairline bg-canvas p-3 text-[14px] text-ink outline-none focus:border-accent"
             />
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setFailOpen(false);
                   setFailReason('');
                 }}
-                className="rounded border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+                className="rounded-md border border-hairline px-4 py-2.5 font-serif italic text-[14px] text-ink-soft hover:bg-canvas"
               >
                 Cancel
               </button>
@@ -216,7 +223,7 @@ export function StopCard({ stop, index, isActive }: Props) {
                   setFailOpen(false);
                   setFailReason('');
                 }}
-                className="rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-danger px-5 py-2.5 font-serif italic text-[14px] text-canvas transition-colors hover:bg-[#8a3024] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Confirm Failure
               </button>

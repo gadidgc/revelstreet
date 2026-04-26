@@ -6,3 +6,4 @@ playwright-report/
 playwright/.cache/
 *.log
 .claude/settings.local.json
+.gstack/
