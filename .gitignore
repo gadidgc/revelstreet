@@ -5,3 +5,4 @@ test-results/
 playwright-report/
 playwright/.cache/
 *.log
+.claude/settings.local.json

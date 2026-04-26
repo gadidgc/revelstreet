@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' 'EnterWorktree is disabled in this repo (anthropics/claude-code#27134: worktrees are silently created from origin/main instead of HEAD). Create the worktree manually with: git worktree add <path> -b <branch> HEAD  — then open it with File > Open folder.' >&2; exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); echo \"$input\" | grep -q '\"isolation\"[[:space:]]*:[[:space:]]*\"worktree\"' && { printf '%s\\n' 'Agent isolation=\"worktree\" is disabled in this repo (anthropics/claude-code#27134: subagent worktrees are silently created from origin/main instead of HEAD). Re-run the Agent without the isolation parameter, or pre-create a worktree with: git worktree add <path> -b <branch> HEAD' >&2; exit 2; } || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
