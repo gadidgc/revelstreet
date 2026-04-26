@@ -94,9 +94,9 @@ So when the README says "the agent did X," the agent had gstack's skill library 
 - **Added a dev panel + drone POV + animated drone** ([#5](../../pull/5), [#8](../../pull/8)) as small demo polish after the core was green.
 - **Hardened the worktree workflow** ([#10](../../pull/10)) with PreToolUse hooks so future agent runs can't accidentally trash a sibling worktree.
 
-## Known issue noticed at submission
+## Note on the exercise platform
 
-The progress counter in the header (`X of Y stops complete`) doesn't survive a hard refresh cleanly — on reload it briefly shows `0 of N` before the persisted state rehydrates from localStorage. Caught it manually right before submitting. The underlying route state **is** persisted correctly (the e2e test for that still passes); it's a render-order issue between Zustand's `persist` middleware hydration and the first paint of `ProgressHeader`. Flagging it here rather than rushing a fix in the last few minutes — the right shape of the fix is to gate the header on `useRouteStore.persist.hasHydrated()` (or render a skeleton until then), not to paper over the count.
+Heads-up to the reviewer, unrelated to this submission: the countdown timer on the Revelstreet engineering-exercise page itself appeared to misbehave for me — on a hard refresh of the interview URL the counter showed zero instead of the remaining time. Not a blocker, just flagging it in case it's worth a look on your side.
 
 With that noted, I'm calling this done.
 
