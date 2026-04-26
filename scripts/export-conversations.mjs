@@ -15,12 +15,26 @@ const flag = (name) => {
 const has = (name) => args.includes(name);
 
 const REPO_ROOT = path.resolve(new URL("..", import.meta.url).pathname);
-const DEFAULT_SRC = path.join(
-  os.homedir(),
-  ".claude/projects/-Users-kisshot-Desktop-projects-revelstreet",
-);
-const SRC = flag("--src") ?? DEFAULT_SRC;
+const PROJECTS_ROOT = path.join(os.homedir(), ".claude/projects");
+const PROJECT_PREFIX = "-Users-kisshot-Desktop-projects-revelstreet";
+const SRC = flag("--src"); // optional: a single dir override
 const OUT = flag("--out") ?? path.join(REPO_ROOT, "conversations");
+
+function discoverSources() {
+  if (SRC) return [SRC];
+  if (!fs.existsSync(PROJECTS_ROOT)) return [];
+  return fs
+    .readdirSync(PROJECTS_ROOT)
+    .filter((name) => name === PROJECT_PREFIX || name.startsWith(PROJECT_PREFIX + "-"))
+    .map((name) => path.join(PROJECTS_ROOT, name));
+}
+
+function workspaceLabel(srcDir) {
+  const name = path.basename(srcDir);
+  if (name === PROJECT_PREFIX) return "main";
+  const m = name.match(/--claude-worktrees-(.+)$/);
+  return m ? `worktree:${m[1]}` : name;
+}
 const INCLUDE_THINKING = has("--include-thinking");
 
 const TOOL_INPUT_LIMIT = 500;
@@ -28,6 +42,26 @@ const TOOL_RESULT_LIMIT = 2000;
 const TITLE_MAX = 80;
 
 const HARNESS_PREFIXES = ["<system-reminder>", "<command-name>", "<local-command-stdout>", "<command-message>"];
+
+// Redact common secret shapes so committed transcripts can't leak credentials.
+const SECRET_PATTERNS = [
+  { name: "openai", re: /sk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}/g },
+  { name: "anthropic", re: /sk-ant-[A-Za-z0-9_-]{20,}/g },
+  { name: "github", re: /gh[pousr]_[A-Za-z0-9]{30,}/g },
+  { name: "aws-access", re: /AKIA[0-9A-Z]{16}/g },
+  { name: "google", re: /AIza[0-9A-Za-z_-]{35}/g },
+  { name: "slack", re: /xox[abprs]-[A-Za-z0-9-]{10,}/g },
+  { name: "private-key", re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
+];
+
+function redactSecrets(text) {
+  if (typeof text !== "string") return text;
+  let out = text;
+  for (const { name, re } of SECRET_PATTERNS) {
+    out = out.replace(re, `[REDACTED ${name} secret]`);
+  }
+  return out;
+}
 
 const slugify = (s) =>
   (s || "")
@@ -231,6 +265,7 @@ function renderSession(s) {
     `Session \`${s.sessionId}\``,
     s.firstTs ? `${fmtTime(s.firstTs)} → ${fmtTime(s.lastTs)}` : null,
     `${s.turns.length} turns`,
+    s.workspace ? `workspace: \`${s.workspace}\`` : null,
     s.gitBranch ? `branch: \`${s.gitBranch}\`` : null,
   ].filter(Boolean);
   md += `_${meta.join(" · ")}_\n\n---\n\n`;
@@ -252,49 +287,75 @@ function renderSession(s) {
 
 function renderIndex(sessions) {
   let md = `# Conversation transcripts\n\n`;
-  md += `Rendered Markdown of every Claude Code session run in this project.\n`;
-  md += `Source: \`~/.claude/projects/-Users-kisshot-Desktop-projects-revelstreet/*.jsonl\`.\n\n`;
+  md += `Rendered Markdown of every Claude Code session run in this project — main workspace and every parallel worktree.\n`;
+  md += `Source: \`~/.claude/projects/-Users-kisshot-Desktop-projects-revelstreet*\`.\n\n`;
   md += `## Regenerate\n\n\`\`\`bash\nnode scripts/export-conversations.mjs\n\`\`\`\n\n`;
   md += `Flags: \`--include-thinking\`, \`--src <dir>\`, \`--out <dir>\`.\n\n`;
-  md += `## Sessions\n\n`;
   if (!sessions.length) {
-    md += `_No sessions found._\n`;
+    md += `## Sessions\n\n_No sessions found._\n`;
     return md;
   }
-  const sorted = [...sessions].sort((a, b) => (a.firstTs || "").localeCompare(b.firstTs || ""));
-  for (const s of sorted) {
-    md += `- [${s.title}](${s.fileName}) — ${fmtTime(s.firstTs)} · ${s.turns.length} turns\n`;
+  const byWorkspace = new Map();
+  for (const s of sessions) {
+    if (!byWorkspace.has(s.workspace)) byWorkspace.set(s.workspace, []);
+    byWorkspace.get(s.workspace).push(s);
   }
-  md += `\n`;
+  const orderedWorkspaces = [...byWorkspace.keys()].sort((a, b) => {
+    if (a === "main") return -1;
+    if (b === "main") return 1;
+    return a.localeCompare(b);
+  });
+  md += `## Summary\n\n`;
+  md += `${sessions.length} session(s) across ${orderedWorkspaces.length} workspace(s).\n\n`;
+  for (const ws of orderedWorkspaces) {
+    md += `### ${ws}\n\n`;
+    const list = byWorkspace.get(ws).sort((a, b) => (a.firstTs || "").localeCompare(b.firstTs || ""));
+    for (const s of list) {
+      md += `- [${s.title}](${s.fileName}) — ${fmtTime(s.firstTs)} · ${s.turns.length} turns\n`;
+    }
+    md += `\n`;
+  }
   return md;
 }
 
 function main() {
-  if (!fs.existsSync(SRC)) {
-    console.error(`Source dir not found: ${SRC}`);
+  const sources = discoverSources();
+  if (!sources.length) {
+    console.error(`No source dirs found under ${PROJECTS_ROOT} matching ${PROJECT_PREFIX}*`);
     process.exit(1);
   }
-  const files = fs
-    .readdirSync(SRC)
-    .filter((f) => f.endsWith(".jsonl"))
-    .map((f) => path.join(SRC, f));
 
   fs.mkdirSync(OUT, { recursive: true });
+  // Wipe stale exports so renamed/removed sessions don't linger.
+  for (const f of fs.readdirSync(OUT)) {
+    if (f.endsWith(".md")) fs.unlinkSync(path.join(OUT, f));
+  }
 
   const sessions = [];
-  for (const f of files) {
-    const s = parseSession(f);
-    const fileName = `${s.sessionId.slice(0, 8)}--${slugify(s.title)}.md`;
-    const outPath = path.join(OUT, fileName);
-    fs.writeFileSync(outPath, renderSession(s));
-    sessions.push({ ...s, fileName });
-    console.log(`wrote ${path.relative(REPO_ROOT, outPath)}`);
+  const seen = new Set();
+  for (const src of sources) {
+    const workspace = workspaceLabel(src);
+    const files = fs
+      .readdirSync(src)
+      .filter((f) => f.endsWith(".jsonl"))
+      .map((f) => path.join(src, f));
+    for (const f of files) {
+      const s = parseSession(f);
+      if (seen.has(s.sessionId)) continue; // same session can show up in multiple project dirs
+      seen.add(s.sessionId);
+      s.workspace = workspace;
+      const fileName = `${s.sessionId.slice(0, 8)}--${slugify(s.title)}.md`;
+      const outPath = path.join(OUT, fileName);
+      fs.writeFileSync(outPath, redactSecrets(renderSession(s)));
+      sessions.push({ ...s, fileName });
+      console.log(`wrote ${path.relative(REPO_ROOT, outPath)}  (${workspace})`);
+    }
   }
 
   const indexPath = path.join(OUT, "README.md");
   fs.writeFileSync(indexPath, renderIndex(sessions));
   console.log(`wrote ${path.relative(REPO_ROOT, indexPath)}`);
-  console.log(`\nExported ${sessions.length} session(s) to ${path.relative(REPO_ROOT, OUT)}/`);
+  console.log(`\nExported ${sessions.length} session(s) from ${sources.length} workspace(s) to ${path.relative(REPO_ROOT, OUT)}/`);
 }
 
 main();

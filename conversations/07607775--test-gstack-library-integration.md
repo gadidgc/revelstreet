@@ -1,6 +1,6 @@
 # Test gstack library integration
 
-_Session `07607775-712a-4cd3-801b-834f1223fd19` · 2026-04-26 13:50:02Z → 2026-04-26 15:40:12Z · 63 turns · branch: `main`_
+_Session `07607775-712a-4cd3-801b-834f1223fd19` · 2026-04-26 13:50:02Z → 2026-04-26 15:40:12Z · 63 turns · workspace: `main` · branch: `main`_
 
 ---
 
