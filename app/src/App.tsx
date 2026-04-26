@@ -1,8 +1,11 @@
 import { ProgressHeader } from './components/ProgressHeader';
 import { StopList } from './components/StopList';
 import { RouteMap } from './components/RouteMap';
+import { CameraModal } from './components/CameraModal';
+import { useSimTick } from './sim/useSimTick';
 
 function App() {
+  useSimTick();
   return (
     <div className="flex h-full flex-col bg-neutral-950">
       <ProgressHeader />
@@ -14,6 +17,7 @@ function App() {
           <RouteMap />
         </section>
       </main>
+      <CameraModal />
     </div>
   );
 }

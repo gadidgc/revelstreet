@@ -168,3 +168,85 @@ the PR conversation. No code changes from CI — pure verification.
 ### Required repo secret
 
 - `ANTHROPIC_API_KEY` — set under repo Settings → Secrets → Actions.
+
+---
+
+## Round 3: Demo Simulation — Animated Drone + Camera
+
+**Brief:** "We need a way to demo this realistically — show a drone moving on
+the map, light it up when it arrives somewhere, and let the operator see the
+drone's camera." Take-home grading is on agent orchestration, not feature
+breadth, so the goal was a single tight loop: plan → minimal build → tests →
+ship.
+
+### Orchestration moves
+
+1. **Plan iteration with the user** (3 rounds in plan mode). First plan
+   over-scoped (speed controls, per-stop videos, sim coupled to state machine,
+   eng-review pass, dedicated `sim/` folder, 6 unit tests, banner-as-card-chip).
+   User said "keep it simple" → cut speed controls, dropped `/plan-eng-review`,
+   collapsed file count. User then clarified "the operator IS the drone
+   operator, the camera should be obvious" → promoted Camera to a permanent
+   header button + added a prominent `ArrivalBanner` instead of just a pin
+   pulse. **Lesson logged for AGENTS.md:** an explicit "what will I see?"
+   walkthrough flushed out the camera-discoverability issue earlier than any
+   code review would have.
+
+2. **gstack commands considered, deliberately narrowed.** Available: `/plan-eng-review`,
+   `/plan-design-review`, `/design-shotgun`, `/autoplan`, `/codex`, `/qa`,
+   `/ship`. Picked only `/ship` — declined `/qa` because the E2E spec already
+   covers every demo beat (drone visible, arrives, banner shows, camera modal
+   opens, ESC closes, reset works) and the rest were overkill for one moving
+   dot + one modal. Showcase artifact is the *decision to skip*, not the
+   skipped commands.
+
+3. **TDD'd the simulation store first.** 8 vitest cases for `simStore` written
+   before any UI: initial state, play/pause, tick advances `t`, latches
+   `arrived` at `t≥1`, `release()` advances segment, last-segment doesn't
+   overflow, reset, camera toggle, mid-segment interpolation. All 8 passed
+   first run. Single source of truth for sim state means the visual layer
+   has nothing to invent.
+
+4. **Caught a parallel-worktree port collision live.** A sibling worktree's
+   vite was on 5173 and Playwright's `reuseExistingServer: true` happily
+   tested the *wrong* app — drone-marker not found because that worktree
+   didn't have the feature. Patched `playwright.config.ts` to port 5183 to
+   run tests, then reverted before commit so main isn't affected. Logged as
+   a real risk of parallel-worktree mode for future reference.
+
+### Architectural call: simStore is independent of routeStore
+
+The drone is a presentation layer. It never calls `markArrived` /
+`markDeparted` / `markCompleted` / `markFailed`. It only **reads**
+`selectActiveStop` to know where to fly to, and **subscribes** to status
+changes to know when to release. Two consequences:
+
+- All 19 prior unit tests + 7 prior E2E specs pass untouched. Zero coupling
+  blast radius.
+- Auto-arrive is impossible by design — operator workflow stays honest.
+
+### Files added (5)
+
+- [app/src/store/simStore.ts](app/src/store/simStore.ts) — zustand: `{ isPlaying, segmentIdx, t, arrived, cameraOpen }` + actions; pure `position(route)` interpolator.
+- [app/src/store/simStore.test.ts](app/src/store/simStore.test.ts) — 8 cases, TDD'd.
+- [app/src/sim/useSimTick.ts](app/src/sim/useSimTick.ts) — single rAF loop + routeStore subscription that calls `release()` when active stop changes.
+- [app/src/components/DroneMarker.tsx](app/src/components/DroneMarker.tsx) — Leaflet `<Marker>` with `divIcon`; pulses (`drone-pulse` keyframe + amber ring) when `arrived`; click opens camera.
+- [app/src/components/CameraModal.tsx](app/src/components/CameraModal.tsx) — `<video>` with native scrubbable controls; Pexels free drone-POV `.mp4`. ESC + backdrop click close.
+- [app/src/components/ArrivalBanner.tsx](app/src/components/ArrivalBanner.tsx) — top-of-list "Drone arrived" chip, only when `arrived && active.status === 'pending'`.
+- [app/tests/e2e/drone-sim.spec.ts](app/tests/e2e/drone-sim.spec.ts) — 3 specs: arrive→banner→confirm→release; camera modal open/close; reset.
+
+### Files modified (4)
+
+- [app/src/App.tsx](app/src/App.tsx) — `useSimTick()` + `<CameraModal>`.
+- [app/src/components/RouteMap.tsx](app/src/components/RouteMap.tsx) — render `<DroneMarker />`.
+- [app/src/components/ProgressHeader.tsx](app/src/components/ProgressHeader.tsx) — Play / Reset / Camera segmented control.
+- [app/src/components/StopList.tsx](app/src/components/StopList.tsx) — render `<ArrivalBanner />` above the list.
+- [app/src/index.css](app/src/index.css) — `@keyframes drone-pulse`, `.drone-marker` reset.
+
+### Result
+
+- Unit: **27/27** (was 19; +8 simStore).
+- E2E: **10/10** (was 7; +3 drone-sim).
+- Manual demo loop works end-to-end: Play → drone flies → halts at stop → pin
+  pulses + banner appears → operator confirms via existing buttons → drone
+  resumes. Camera button always reachable from the header.

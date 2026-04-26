@@ -13,7 +13,13 @@ body {
 }
 
 /* Leaflet pin overrides for our numbered markers */
-.stop-pin {
+.stop-pin,
+.drone-marker {
   background: transparent;
   border: 0;
+}
+
+@keyframes drone-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }

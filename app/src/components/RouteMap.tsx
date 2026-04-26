@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { useRouteStore, selectActiveStop } from '../store/routeStore';
+import { DroneMarker } from './DroneMarker';
 import type { Stop } from '../types';
 
 function pinIcon(stop: Stop, index: number, isActive: boolean): L.DivIcon {
@@ -96,6 +97,7 @@ export function RouteMap() {
             </Popup>
           </Marker>
         ))}
+        <DroneMarker />
       </MapContainer>
     </div>
   );
