@@ -158,7 +158,7 @@ export function StopCard({ stop, index, isActive }: Props) {
       {failOpen && (
         <div
           data-testid={`fail-modal-${stop.id}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
         >
           <div className="w-full max-w-md rounded-lg border border-neutral-700 bg-neutral-900 p-5">
             <h2 className="mb-1 text-lg font-semibold text-white">
