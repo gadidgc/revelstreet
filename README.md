@@ -53,7 +53,28 @@ Production build: clean (110 KB JS gzipped)
 
 ## For the reviewer — conversation + decisions
 
-Full transcript lives in [`CONVERSATION.md`](./CONVERSATION.md). The short version of what I (the human) actually said and decided:
+### Tooling
+
+This whole exercise was driven through **[gstack](https://github.com/garrytan/gstack)** running on top of Claude Code (Claude Opus 4.7). gstack is the skill toolkit that powered every meaningful step:
+
+- `/office-hours --builder-mode` for the initial planning workflow (forced a design doc before any code).
+- Plan-review skills (`/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`) framed how I pushed back on the agent's first plan.
+- `/design-shotgun` was the design-exploration skill I told the agent to use for visual decisions instead of prescribing pixels in markdown (the agent ultimately skipped the binary build for time — documented as a tradeoff).
+- `/ship` handled the PR-creation workflow.
+- `/qa-only` is what the CI workflow invokes on every PR (`.github/workflows/pr-qa.yml`).
+
+So when the README says "the agent did X," the agent had gstack's skill library available the whole time — that's why the planning, design framing, and CI QA loop all feel coherent rather than ad-hoc.
+
+### Where to find the conversations
+
+| Source | What it contains |
+|--------|------------------|
+| [`CONVERSATION.md`](./CONVERSATION.md) | Hand-curated, abbreviated transcript of every substantive human ↔ agent turn across planning + build. This is the one to read first. |
+| [`AGENTS.md`](./AGENTS.md) | Orchestration log — which agent steps ran, in what order, what each layer caught, what was skipped and why. |
+| [`PLAN.md`](./PLAN.md) | The plan as approved at ExitPlanMode, after 3 rounds of human pushback. |
+| `~/.claude/projects/-Users-kisshot-Desktop-projects-revelstreet--claude-worktrees-nervous-franklin-81af9c/` | Raw Claude Code session transcripts (JSONL) for this worktree. Full unedited record — exportable on request. The parent project transcripts live one directory up at `~/.claude/projects/-Users-kisshot-Desktop-projects-revelstreet/`. |
+
+### What I (the human) actually said and decided
 
 **Planning phase (5 human messages, 0 in build):**
 
