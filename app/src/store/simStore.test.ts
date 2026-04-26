@@ -7,9 +7,9 @@ const reset = () => useSimStore.getState().reset();
 describe('simStore', () => {
   beforeEach(() => reset());
 
-  it('starts paused at segment 0, t=0, not arrived, position at first stop', () => {
+  it('starts auto-playing at segment 0, t=0, not arrived, position at first stop', () => {
     const s = useSimStore.getState();
-    expect(s.isPlaying).toBe(false);
+    expect(s.isPlaying).toBe(true);
     expect(s.segmentIdx).toBe(0);
     expect(s.t).toBe(0);
     expect(s.arrived).toBe(false);
@@ -19,11 +19,11 @@ describe('simStore', () => {
     expect(lng).toBeCloseTo(sampleRoute.stops[0].lng);
   });
 
-  it('play() sets isPlaying; pause() clears it', () => {
-    useSimStore.getState().play();
-    expect(useSimStore.getState().isPlaying).toBe(true);
+  it('pause() clears isPlaying; play() sets it', () => {
     useSimStore.getState().pause();
     expect(useSimStore.getState().isPlaying).toBe(false);
+    useSimStore.getState().play();
+    expect(useSimStore.getState().isPlaying).toBe(true);
   });
 
   it('tick advances t while playing and stops once arrived', () => {
@@ -82,7 +82,7 @@ describe('simStore', () => {
     expect(after.segmentIdx).toBe(0);
     expect(after.t).toBe(0);
     expect(after.arrived).toBe(false);
-    expect(after.isPlaying).toBe(false);
+    expect(after.isPlaying).toBe(true);
     expect(after.cameraOpen).toBe(false);
   });
 

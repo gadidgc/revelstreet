@@ -6,16 +6,13 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test('drone simulation: play, arrive, signal banner, release on confirm', async ({
+test('drone simulation: auto-plays, arrives, signals, releases on confirm', async ({
   page,
 }) => {
-  // Drone marker visible from the start (paused at stop 1).
-  const drone = page.getByTestId('drone-marker');
-  await expect(drone).toBeVisible();
-  await expect(drone).toHaveAttribute('data-arrived', 'false');
+  // Drone marker visible from the start (auto-playing).
+  await expect(page.getByTestId('drone-marker')).toBeVisible();
 
-  // Press Play; wait for arrival latch (segment is ~6s; allow generous slack).
-  await page.getByTestId('sim-play').click();
+  // Sim auto-plays; wait for arrival latch (segment is ~6s; allow generous slack).
   await expect(page.getByTestId('drone-marker')).toHaveAttribute(
     'data-arrived',
     'true',
@@ -73,19 +70,20 @@ test('camera modal: opens live, rewinds 10 min, returns to live, ESC closes', as
   await expect(page.getByTestId('camera-modal')).toBeHidden();
 });
 
-test('reset returns the drone to the first stop', async ({ page }) => {
-  await page.getByTestId('sim-play').click();
+test('Start New Route resets the drone back to the first stop', async ({ page }) => {
+  // Auto-playing — wait for first arrival.
   await expect(page.getByTestId('drone-marker')).toHaveAttribute(
     'data-arrived',
     'true',
     { timeout: 15_000 },
   );
 
-  await page.getByTestId('sim-reset').click();
+  // "Start New Route" triggers a confirm() dialog and also resets the drone.
+  page.once('dialog', (d) => d.accept());
+  await page.getByTestId('reset-button').click();
+
   await expect(page.getByTestId('drone-marker')).toHaveAttribute(
     'data-arrived',
     'false',
   );
-  // Play button is back (was Pause while playing — reset pauses).
-  await expect(page.getByTestId('sim-play')).toBeVisible();
 });

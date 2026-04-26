@@ -25,7 +25,7 @@ type SimState = {
 };
 
 const INITIAL = {
-  isPlaying: false,
+  isPlaying: true,
   segmentIdx: 0,
   t: 0,
   arrived: false,

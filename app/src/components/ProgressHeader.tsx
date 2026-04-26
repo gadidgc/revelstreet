@@ -7,9 +7,6 @@ export function ProgressHeader() {
   const { done, total } = selectProgress(route);
   const complete = isRouteComplete(route);
 
-  const isPlaying = useSimStore((s) => s.isPlaying);
-  const play = useSimStore((s) => s.play);
-  const pause = useSimStore((s) => s.pause);
   const simReset = useSimStore((s) => s.reset);
   const openCamera = useSimStore((s) => s.openCamera);
 
@@ -25,50 +22,29 @@ export function ProgressHeader() {
       </div>
 
       <div className="flex items-center gap-6">
-        <div
-          data-testid="sim-controls"
-          className="flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-900 p-1"
+        <button
+          data-testid="camera-button"
+          type="button"
+          onClick={openCamera}
+          title="Open drone POV camera"
+          className="flex items-center gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 hover:border-rose-400 hover:bg-rose-500/20"
         >
-          {isPlaying ? (
-            <button
-              data-testid="sim-pause"
-              type="button"
-              onClick={pause}
-              className="rounded px-3 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-800"
-              title="Pause drone simulation"
-            >
-              ⏸ Pause
-            </button>
-          ) : (
-            <button
-              data-testid="sim-play"
-              type="button"
-              onClick={play}
-              className="rounded bg-sky-500/15 px-3 py-1.5 text-sm font-semibold text-sky-200 hover:bg-sky-500/25"
-              title="Play drone simulation"
-            >
-              ▶ Play
-            </button>
-          )}
-          <button
-            data-testid="sim-reset"
-            type="button"
-            onClick={simReset}
-            className="rounded px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
-            title="Reset drone to first stop"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
           >
-            ↺ Reset
-          </button>
-          <button
-            data-testid="camera-button"
-            type="button"
-            onClick={openCamera}
-            className="rounded px-3 py-1.5 text-sm font-medium text-rose-300 hover:bg-rose-500/15"
-            title="Open drone camera"
-          >
-            📷 Camera
-          </button>
-        </div>
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          POV Drone
+        </button>
 
         <div
           data-testid="progress-counter"
