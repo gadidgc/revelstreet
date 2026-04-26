@@ -35,6 +35,16 @@ jobs:
             echo "::notice::No app/package.json found — skipping QA agent run."
           fi
 
+      - name: Check secret
+        if: steps.detect.outputs.has_app == 'true'
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
       - name: Setup pnpm
         if: steps.detect.outputs.has_app == 'true'
         uses: pnpm/action-setup@v4
