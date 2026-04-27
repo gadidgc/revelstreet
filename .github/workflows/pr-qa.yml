@@ -122,5 +122,5 @@ jobs:
           if-no-files-found: ignore
 
       - name: Tear down dev server
-        if: always()
-        run: kill "${DEV_PID:-0}" 2>/dev/null || true
+        if: always() && steps.detect.outputs.has_app == 'true' && env.DEV_PID != ''
+        run: kill "$DEV_PID" 2>/dev/null || true
